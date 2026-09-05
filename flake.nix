@@ -50,6 +50,10 @@
       packages.${system} = rec {
         app = import ./nix/pkgs/app.nix { inherit pkgs; };
       };
+
+      checks.${system} = {
+        main = pkgs.callPackage ./nix/__tests__/app-test.nix { };
+      };
     };
 
 }

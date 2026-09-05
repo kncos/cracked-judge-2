@@ -35,7 +35,7 @@
       };
 
       packages.${system} = rec {
-        app = import ./nix/pkgs/app.nix { };
+        app = import ./nix/pkgs/app.nix { inherit pkgs; };
       };
     };
 

@@ -1,0 +1,24 @@
+warning: Git tree '/home/kncos/Documents/cracked-judge-2' is dirty
+Using saved setting for 'extra-substituters = https://nix-community.cachix.org' from ~/.local/share/nix/trusted-settings.json.
+Using saved setting for 'extra-trusted-public-keys = nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=' from ~/.local/share/nix/trusted-settings.json.
+evaluation warning: The user 'root' has multiple of the options
+                    `initialHashedPassword`, `hashedPassword`, `initialPassword`, `password`
+                    & `hashedPasswordFile` set to a non-null value.
+
+                    If multiple of these password options are set at the same time then a
+                    specific order of precedence is followed, which can lead to surprising
+                    results. The order of precedence differs depending on whether the
+                    {option}`users.mutableUsers` option is set.
+
+                    If the option {option}`users.mutableUsers` is
+                    `true`, then the order of precedence is as shown
+                    below, where values on the left are overridden by values on the right:
+                    {option}`initialHashedPassword` -> {option}`initialPassword` -> {option}`hashedPassword` -> {option}`password` -> {option}`hashedPasswordFile`
+
+                    The values of these options are:
+                    * users.users."root".hashedPassword: null
+                    * users.users."root".hashedPasswordFile: "/nix/store/zjqw2mcvbblhk5zvmi2vnp92mrs71k6q-hashed-password.root"
+                    * users.users."root".password: ""
+                    * users.users."root".initialHashedPassword: null
+                    * users.users."root".initialPassword: null
+error: interrupted by the user

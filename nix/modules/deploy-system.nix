@@ -14,7 +14,6 @@
   boot = {
     # loader.grub.enable = false;
     kernel = {
-      enable = false;
       sysctl = {
         "kernel.randomize_va_space" = 0;
         "kernel.core_pattern" = "/tmp/core.%e.%p";

@@ -52,7 +52,7 @@
       };
 
       checks.${system} = {
-        main = pkgs.callPackage ./nix/__tests__/app-test.nix { };
+        main = pkgs.callPackage ./nix/__tests__/app.test.nix { };
       };
     };
 

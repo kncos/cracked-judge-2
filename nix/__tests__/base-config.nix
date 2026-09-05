@@ -6,7 +6,6 @@
 }:
 {
   # requires this because we intentionally trigger oom to test isolate
-  boot.kernel.sysctl."vm.panic_on_oom" = 0;
   boot.kernelParams = [
     "loglevel=3"
     "quiet"

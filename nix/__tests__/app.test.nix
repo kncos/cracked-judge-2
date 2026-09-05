@@ -1,6 +1,6 @@
 { pkgs, lib, ... }:
 pkgs.testers.nixosTest {
-  name = "app-test";
+  name = "app-test-vm";
   nodes.machine = {
     imports = [
       ../modules/deploy-system.nix

@@ -10,5 +10,7 @@ pkgs.bun2nix.mkDerivation {
     bunNix = ../bun.nix;
   };
 
+  extraBunBuildFlags = [ "--format=esm" ];
+
   module = "index.ts";
 }

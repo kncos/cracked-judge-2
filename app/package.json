@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "postinstall": "bun2nix -o ../nix/bun.nix"
+    "postinstall": "bun2nix -o ../nix/bun.nix",
+    "test-nix": "bun test **/*.nix.test.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

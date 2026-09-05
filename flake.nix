@@ -31,7 +31,20 @@
     in
     {
       nixosConfigurations = {
+        deploy = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            {
+              boot.kernelParams = [ "loglevel=3" ];
+              nixpkgs.overlays = overlays;
+              services.iperf3 = {
+                enable = true;
+              };
 
+            }
+            ./nix/modules/deploy-system.nix
+          ];
+        };
       };
 
       packages.${system} = rec {

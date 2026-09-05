@@ -10,7 +10,7 @@ const redis = await createRedisClient({
   signal,
 });
 
-while (true) {
+for (let i = 0; i < 5; i++) {
   if (signal.aborted) break;
 
   await enqueueJob(redis, { id: "random-id" });

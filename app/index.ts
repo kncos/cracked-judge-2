@@ -1,13 +1,19 @@
-import { Daemon } from "./src/daemon";
+import { createRedisClient, dequeueJob, enqueueJob } from "./src/redis";
 
-const d = new Daemon();
-d.start();
+const controller = new AbortController();
+process.on("SIGINT", () => controller.abort());
+process.on("SIGABRT", () => controller.abort());
+process.on("SIGTERM", () => controller.abort());
+const signal = controller.signal;
 
-const shutdown = async (signal: string) => {
-  console.log(`Received ${signal}, stopping...`);
-  await d.stop();
-  process.exit(0);
-};
+const redis = await createRedisClient({
+  signal,
+});
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+while (true) {
+  if (signal.aborted) break;
+
+  await enqueueJob(redis, { id: "random-id" });
+  const dequeued = await dequeueJob(redis, signal);
+  console.log(JSON.stringify(dequeued));
+}

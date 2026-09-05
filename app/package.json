@@ -3,8 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "postinstall": "bun2nix -o ../nix/bun.nix"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "bun2nix": "^2.1.2"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -12,6 +16,7 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "ioredis": "^6.0.0",
+    "redis": "^6.2.1",
     "zod": "^4.5.4"
   }
 }

@@ -3,6 +3,9 @@ node_modules
 
 # output
 out
+out.txt
+.nixos-test-history
+result
 dist
 *.tgz
 

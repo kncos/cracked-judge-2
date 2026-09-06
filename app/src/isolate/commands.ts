@@ -9,7 +9,6 @@ import {
   zIsolateMeta,
   zIsolateRunOpts,
 } from "./isolate-utils";
-// import { interpretMeta, parseMeta } from "./utils";
 
 // this is the default path template and is exactly what isolate init
 // is returning, so we'll make the assumption that this will hold true for now
@@ -17,7 +16,7 @@ export const getBoxPath = (boxId: number) => `/var/lib/isolate/boxes/${boxId}`;
 
 /**
  * Helper that runs the isolate --init command
- * @param boxid -- boxId to initialize
+ * @param boxId -- boxId to initialize
  * @returns boxpath -- absolute path to the sandbox root directory
  */
 export const init = (boxId: number): string => {
@@ -45,10 +44,10 @@ export const init = (boxId: number): string => {
 
 /**
  * Helper that runs the isolate --cleanup command
- * @param boxid -- optional boxid to clean up, defaults to 0
+ * @param boxId -- optional boxid to clean up, defaults to 0
  */
-export const cleanup = (boxid: number) => {
-  const cmd = ["isolate", "--cg", "--cleanup", `--box-id=${boxid}`];
+export const cleanup = (boxId: number) => {
+  const cmd = ["isolate", "--cg", "--cleanup", `--box-id=${boxId}`];
   const proc = Bun.spawnSync(cmd);
   if (proc.exitCode !== 0) {
     throw new CrackedError("ISOLATE_ERROR", {
@@ -139,22 +138,22 @@ export const run = (
   // it should just exit with a metadata file with the info we need
   const proc = Bun.spawnSync(cmd);
 
+  if (
+    !fileExists(stdoutPath) ||
+    !fileExists(stderrPath) ||
+    !fileExists(metaPath)
+  ) {
+    const message =
+      "Missing one or more output files:\n" +
+      `  stdout: ${stdoutPath} - exists: ${fileExists(stdoutPath)}\n` +
+      `  stderr: ${stderrPath} - exists: ${fileExists(stderrPath)}\n` +
+      `  meta: ${metaPath} - exists: ${fileExists(metaPath)}\n`;
+
+    throw new CrackedError("ISOLATE_ERROR", { message });
+  }
+
   // relevant information from the runtime
   try {
-    if (
-      !fileExists(stdoutPath) ||
-      !fileExists(stderrPath) ||
-      !fileExists(metaPath)
-    ) {
-      const message =
-        "Missing one or more output files:\n" +
-        `  stdout: ${stdoutPath} - exixts: ${fileExists(stdoutPath)}\n` +
-        `  stderr: ${stderrPath} - exixts: ${fileExists(stderrPath)}\n` +
-        `  meta: ${metaPath} - exixts: ${fileExists(metaPath)}\n`;
-
-      throw new CrackedError("ISOLATE_ERROR", { message });
-    }
-
     const stdout = readFileSync(stdoutPath).toString("utf-8");
     const stderr = readFileSync(stderrPath).toString("utf-8");
     const meta = parseMeta(readFileSync(metaPath).toString("utf-8"));

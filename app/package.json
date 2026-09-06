@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "postinstall": "bun2nix -o ../nix/bun.nix",
-    "test-nix": "bun test **/*.nix.test.ts"
+    "test-nix": "find src -name '*.nix.test.ts' | xargs bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",

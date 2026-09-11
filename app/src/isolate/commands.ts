@@ -4,15 +4,12 @@ import type z from "zod";
 import { CrackedError } from "../cracked-error";
 import { fileExists, stringifyProcResult } from "../utils";
 import {
+  getBoxPath,
   interpretMeta,
   parseMeta,
   zIsolateMeta,
   zIsolateRunOpts,
 } from "./isolate-utils";
-
-// this is the default path template and is exactly what isolate init
-// is returning, so we'll make the assumption that this will hold true for now
-export const getBoxPath = (boxId: number) => `/var/lib/isolate/boxes/${boxId}`;
 
 /**
  * Helper that runs the isolate --init command

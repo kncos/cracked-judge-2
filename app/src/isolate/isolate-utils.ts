@@ -122,3 +122,6 @@ export const interpretMeta = (
 
   return { status: "accepted", message: "Submission Accepted" };
 };
+// this is the default path template and is exactly what isolate init
+// is returning, so we'll make the assumption that this will hold true for now
+export const getBoxPath = (boxId: number) => `/var/lib/isolate/boxes/${boxId}`;

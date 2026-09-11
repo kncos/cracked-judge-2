@@ -1,6 +1,6 @@
 import { createClient, type RedisClientType } from "redis";
 import { z } from "zod";
-import type { Job, JobResult } from "./job";
+import { zJob, zJobResult } from "./types";
 
 export const zRedisConfigSchema = z.object({
   host: z.string().default("localhost"),
@@ -78,7 +78,10 @@ const TTL_SECONDS = 3600;
 const getResultKey = (id: string) => `job:${id}`;
 const JOBS_QUEUE = "jobs";
 
-export const enqueueJob = async (redis: RedisClientType, job: Job) => {
+export const enqueueJob = async (
+  redis: RedisClientType,
+  job: z.infer<typeof zJob>,
+) => {
   const payload = JSON.stringify(job);
   return await redis
     .multi()
@@ -90,17 +93,19 @@ export const enqueueJob = async (redis: RedisClientType, job: Job) => {
 export const dequeueJob = async (
   redis: RedisClientType,
   signal?: AbortSignal,
-) => {
+): Promise<z.infer<typeof zJob>> => {
   while (true) {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const res = await redis.brPop(JOBS_QUEUE, 1);
-    if (res != null) return JSON.parse(res.element) as Job;
+    if (res != null) {
+      return zJob.parse(JSON.parse(res.element));
+    }
   }
 };
 
 export const enqueueResult = async (
   redis: RedisClientType,
-  result: JobResult,
+  result: z.infer<typeof zJobResult>,
 ) => {
   const { id } = result;
   const payload = JSON.stringify(result);
@@ -115,10 +120,12 @@ export const dequeueResult = async (
   redis: RedisClientType,
   jobId: string,
   signal?: AbortSignal,
-) => {
+): Promise<z.infer<typeof zJobResult>> => {
   while (true) {
     if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
     const res = await redis.brPop(getResultKey(jobId), 1);
-    if (res != null) return JSON.parse(res.element) as JobResult;
+    if (res != null) {
+      return zJobResult.parse(JSON.parse(res.element));
+    }
   }
 };

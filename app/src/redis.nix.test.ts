@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { Job, JobResult } from "./job";
+import type z from "zod";
 import {
   createRedisClient,
   dequeueJob,
@@ -7,6 +7,7 @@ import {
   enqueueJob,
   enqueueResult,
 } from "./redis";
+import type { zJob, zJobResult } from "./types";
 
 describe("basic redis tests", () => {
   beforeEach(async () => {
@@ -17,9 +18,11 @@ describe("basic redis tests", () => {
 
   test("enqueue/dequeue job works", async () => {
     const redis = await createRedisClient();
-    const job: Job = {
+    const job = {
+      commands: [],
+      files: [],
       id: "hello",
-    };
+    } as z.infer<typeof zJob>;
 
     await enqueueJob(redis, job);
     const popped = await dequeueJob(redis);
@@ -29,14 +32,13 @@ describe("basic redis tests", () => {
 
   test("enqueue/dequeue job result works", async () => {
     const redis = await createRedisClient();
-    const jobResult: JobResult = {
+    const jobResult: z.infer<typeof zJobResult> = {
       id: "hello",
-      success: true,
+      commandResults: [],
     };
 
     await enqueueResult(redis, jobResult);
     const popped = await dequeueResult(redis, "hello");
-    expect(popped.success).toStrictEqual(true);
     expect(popped.id).toStrictEqual("hello");
     redis.destroy();
   });

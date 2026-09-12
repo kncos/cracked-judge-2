@@ -1,5 +1,3 @@
-import { statSync } from "node:fs";
-
 // Types for the result object with discriminated union
 type Success<T> = {
   data: T;
@@ -34,16 +32,12 @@ export const indentStr = (
   return str.replace(/^/gm, _indent);
 };
 
-export interface Proc {
-  pid: number;
-  exitCode: number;
-  stdout: Buffer;
-  stderr: Buffer;
-  exitedDueToTimeout?: boolean | undefined;
-}
-
 export const bufferToStrTruncate = (input: Buffer, maxLen: number = 256) => {
   const text = input.toString();
+  return truncateStr(text, maxLen);
+};
+
+export const truncateStr = (text: string, maxLen: number = 256) => {
   if (maxLen <= 0) return text;
 
   if (text.length < maxLen) return text;
@@ -51,31 +45,6 @@ export const bufferToStrTruncate = (input: Buffer, maxLen: number = 256) => {
   const truncatedEnd = `... (truncated ${text.length - maxLen} chars)`;
   return `${text.slice(0, maxLen - truncatedEnd.length)}${truncatedEnd}`;
 };
-
-export const stringifyProcResult = (
-  cmd: string[],
-  proc: Proc,
-  header?: string,
-) => {
-  const body = [
-    `  command: ${cmd.join(" ")}`,
-    `  exit code: ${proc.exitCode}`,
-    `  pid: ${proc.pid}`,
-    `  timed out: ${proc.exitedDueToTimeout ?? false}`,
-    "  stdout:",
-    indentStr(bufferToStrTruncate(proc.stdout, 256), 1, ">   "),
-    `  stderr:`,
-    indentStr(bufferToStrTruncate(proc.stderr, 256), 1, ">   "),
-  ].join("\n");
-
-  if (header) {
-    return [header, body].join("\n");
-  }
-  return body;
-};
-
-export const fileExists = (path: string) =>
-  statSync(path, { throwIfNoEntry: false }) !== undefined;
 
 export const exitCodeSignalMapping: Record<number, NodeJS.Signals> = {
   129: "SIGHUP",

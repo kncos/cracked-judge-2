@@ -1,14 +1,11 @@
-import { $ } from "bun";
 import path from "node:path";
 import type { RedisClientType } from "redis";
 import type z from "zod";
 import { isolate } from "./isolate/commands";
 import { getBoxPath } from "./isolate/isolate-utils";
 import { dequeueJob, enqueueResult } from "./redis";
+import { sh } from "./shell";
 import type { zJobResult } from "./types";
-
-const getDepFilename = (hash: string) =>
-  path.join("/opt/cracked-judge", `${hash}.tar`);
 
 export const processJob = async (params: {
   redis: RedisClientType;
@@ -22,14 +19,16 @@ export const processJob = async (params: {
     depsBase = "/opt/cracked-judge/",
     signal,
   } = params;
+
   const sandboxDir = path.join(getBoxPath(isolateBoxId), "/box");
 
   const job = await dequeueJob(redis, signal);
 
   if (job.hashesToLoad) {
     await Promise.all(
-      job.hashesToLoad.map(
-        (hash) => $`tar -xf - -C ${sandboxDir} < ${getDepFilename(hash)}`,
+      // command: `tar -xf - -C ${sandboxDir} < ${getDepFilename(hash)}`
+      job.hashesToLoad.map((hash) =>
+        sh(["cp", `/opt/cracked-judge/${hash}/*`, "-t", `${sandboxDir}/`]),
       ),
     );
   }
@@ -43,7 +42,7 @@ export const processJob = async (params: {
   const commandResults: z.infer<typeof zJobResult>["commandResults"] = [];
   for (const command of job.commands) {
     // todo: add support for run options
-    const result = isolate.run(command, {
+    const result = await isolate.run(command, {
       box_id: isolateBoxId,
     });
     commandResults.push(result);

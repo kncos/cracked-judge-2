@@ -1,13 +1,12 @@
-import { readFileSync } from "node:fs";
 import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
-import { fileExists, stringifyProcResult } from "../utils";
+import { sh, stringifyShResult } from "../shell";
+import type { zJobCommandResult } from "../types";
 import {
   getBoxPath,
   interpretMeta,
   parseMeta,
-  zIsolateMeta,
   zIsolateRunOpts,
 } from "./isolate-utils";
 
@@ -16,16 +15,16 @@ import {
  * @param boxId -- boxId to initialize
  * @returns boxpath -- absolute path to the sandbox root directory
  */
-export const init = (boxId: number): string => {
+export const init = async (boxId: number): Promise<string> => {
   const cmd = ["isolate", "--cg", "--init", `--box-id=${boxId}`];
-  const proc = Bun.spawnSync(cmd);
+  const proc = await sh(cmd);
   if (proc.exitCode !== 0) {
     throw new CrackedError("ISOLATE_ERROR", {
-      message: stringifyProcResult(cmd, proc),
+      message: stringifyShResult(proc),
     });
   }
 
-  const boxpath = proc.stdout.toString().trim();
+  const boxpath = proc.stdout.trim();
   // if the assumption breaks, we'll throw an error to prevent any path issues
   if (path.resolve(boxpath) !== path.resolve(getBoxPath(boxId))) {
     throw new CrackedError("ISOLATE_ERROR", {
@@ -43,12 +42,12 @@ export const init = (boxId: number): string => {
  * Helper that runs the isolate --cleanup command
  * @param boxId -- optional boxid to clean up, defaults to 0
  */
-export const cleanup = (boxId: number) => {
+export const cleanup = async (boxId: number) => {
   const cmd = ["isolate", "--cg", "--cleanup", `--box-id=${boxId}`];
-  const proc = Bun.spawnSync(cmd);
+  const proc = await sh(cmd);
   if (proc.exitCode !== 0) {
     throw new CrackedError("ISOLATE_ERROR", {
-      message: stringifyProcResult(cmd, proc),
+      message: stringifyShResult(proc),
     });
   }
 };
@@ -59,14 +58,10 @@ export const cleanup = (boxId: number) => {
  * @param params see zIsolateRunOpts
  * @returns
  */
-export const run = (
+export const run = async (
   execCmd: string[],
   params: z.infer<typeof zIsolateRunOpts>,
-): {
-  stdout: string;
-  stderr: string;
-  meta: z.infer<typeof zIsolateMeta>;
-} & ReturnType<typeof interpretMeta> => {
+): Promise<z.infer<typeof zJobCommandResult>> => {
   // do this here to get the box path, but we won't rely on this.
   // with isolate, it's a no-op if init is run twice
   const boxPath = getBoxPath(params.box_id);
@@ -133,36 +128,40 @@ export const run = (
 
   // unused, we don't actually want to run logging on this because
   // it should just exit with a metadata file with the info we need
-  const proc = Bun.spawnSync(cmd);
+  const proc = await sh(cmd);
 
-  if (
-    !fileExists(stdoutPath) ||
-    !fileExists(stderrPath) ||
-    !fileExists(metaPath)
-  ) {
+  const stdoutFile = Bun.file(stdoutPath);
+  const stderrFile = Bun.file(stderrPath);
+  const metaFile = Bun.file(metaPath);
+
+  const stdoutExists = await stdoutFile.exists();
+  const stderrExists = await stderrFile.exists();
+  const metaExists = await metaFile.exists();
+
+  if (!stdoutExists || !stderrExists || !metaExists) {
     const message =
       "Missing one or more output files:\n" +
-      `  stdout: ${stdoutPath} - exists: ${fileExists(stdoutPath)}\n` +
-      `  stderr: ${stderrPath} - exists: ${fileExists(stderrPath)}\n` +
-      `  meta: ${metaPath} - exists: ${fileExists(metaPath)}\n`;
-
+      `  stdout: ${stdoutPath} - exists: ${stdoutExists}\n` +
+      `  stderr: ${stderrPath} - exists: ${stderrExists}\n` +
+      `  meta: ${metaPath} - exists: ${metaExists}\n`;
     throw new CrackedError("ISOLATE_ERROR", { message });
   }
 
   // relevant information from the runtime
   try {
-    const stdout = readFileSync(stdoutPath).toString("utf-8");
-    const stderr = readFileSync(stderrPath).toString("utf-8");
-    const meta = parseMeta(readFileSync(metaPath).toString("utf-8"));
+    const stdout = await stdoutFile.text();
+    const stderr = await stderrFile.text();
+    const metaTxt = await metaFile.text();
+    const meta = parseMeta(metaTxt);
     return { stdout, stderr, meta, ...interpretMeta(meta) };
   } catch (e) {
     const lscmd = ["ls", "-lR", "/var/lib/isolate/"];
-    const ls = Bun.spawnSync(lscmd);
+    const ls = await sh(lscmd);
     const message = [
       "=".repeat(20),
-      stringifyProcResult(cmd, proc),
+      stringifyShResult(proc),
       "",
-      stringifyProcResult(lscmd, ls),
+      stringifyShResult(ls),
       "=".repeat(20),
     ].join("\n");
     throw new CrackedError("ISOLATE_ERROR", {

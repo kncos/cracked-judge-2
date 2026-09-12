@@ -27,16 +27,16 @@ export const zJob = z.object({
   saveAsHash: z.boolean().optional(),
 });
 
+export const zJobCommandResult = z.object({
+  status: z.enum(JUDGE_STATUS_CODES),
+  stdout: z.string().optional(),
+  stderr: z.string().optional(),
+  meta: zIsolateMeta,
+  message: z.string().optional(),
+});
+
 export const zJobResult = z.object({
   id: z.string(),
-  commandResults: z.array(
-    z.object({
-      status: z.enum(JUDGE_STATUS_CODES),
-      stdout: z.string().optional(),
-      stderr: z.string().optional(),
-      meta: zIsolateMeta,
-      message: z.string().optional(),
-    }),
-  ),
+  commandResults: z.array(zJobCommandResult),
   savedHash: z.string().optional(),
 });

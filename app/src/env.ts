@@ -11,6 +11,8 @@ const zEnv = z.object({
   REDIS_USERNAME: z.string().optional(),
   REDIS_TLS: z.literal(true).optional(),
   REDIS_DB: z.number().int().min(0).max(15).default(0),
+
+  ISOLATE_NUM_BOXES: z.number().int().min(1).max(63).default(1),
 });
 
 export const ENV = zEnv.parse(process.env);

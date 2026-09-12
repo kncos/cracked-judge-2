@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type z from "zod";
+import type { zJob, zJobResult } from "../types";
 import {
   createRedisClient,
   dequeueJob,
@@ -7,7 +8,6 @@ import {
   enqueueJob,
   enqueueResult,
 } from "./redis";
-import type { zJob, zJobResult } from "./types";
 
 describe("basic redis tests", () => {
   beforeEach(async () => {
@@ -26,7 +26,7 @@ describe("basic redis tests", () => {
 
     await enqueueJob(redis, job);
     const popped = await dequeueJob(redis);
-    expect(popped.id).toStrictEqual("hello");
+    expect(popped?.id).toStrictEqual("hello");
     redis.destroy();
   });
 
@@ -39,7 +39,7 @@ describe("basic redis tests", () => {
 
     await enqueueResult(redis, jobResult);
     const popped = await dequeueResult(redis, "hello");
-    expect(popped.id).toStrictEqual("hello");
+    expect(popped?.id).toStrictEqual("hello");
     redis.destroy();
   });
 });

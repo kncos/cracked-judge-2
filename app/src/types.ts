@@ -16,7 +16,7 @@ export type JudgeStatus = (typeof JUDGE_STATUS_CODES)[number];
 
 export const zJob = z.object({
   id: z.string(),
-  commands: z.array(zIsolateRunOpts),
+  commands: z.array(zIsolateRunOpts.omit({ box_id: true })),
   files: z.array(
     z.object({
       name: z.string().nonempty(),

@@ -4,11 +4,11 @@ import { cleanup, init, run } from "./commands";
 const testbin = "/run/current-system/sw/bin/isolate-test-program";
 const BOX_ID = 0;
 
-const printres = (input: ReturnType<typeof run>) => {
+const printres = (input: Awaited<ReturnType<typeof run>>) => {
   console.log(">>> STDOUT:");
-  console.log(input.stdout.slice(0, 2048));
+  console.log(input.stdout?.slice(0, 2048));
   console.log(">>> STDERR:");
-  console.log(input.stderr.slice(0, 2048));
+  console.log(input.stderr?.slice(0, 2048));
   console.log(">>> meta:");
   console.log(JSON.stringify(input.meta, null, 2));
 };
@@ -22,8 +22,11 @@ describe("Judge Status Results", () => {
     cleanup(BOX_ID);
   });
 
-  it("AC — clean zero exit", () => {
-    const result = run([testbin, "--exitcode=0"], { box_id: BOX_ID });
+  it("AC — clean zero exit", async () => {
+    const result = await run({
+      cmd: [testbin, "--exitcode=0"],
+      box_id: BOX_ID,
+    });
     try {
       expect(result.status).toBe("accepted");
       expect(result.meta.exitcode).toBe(0);
@@ -34,8 +37,11 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("WA — reserved exit code 69", () => {
-    const result = run([testbin, "--exitcode=69"], { box_id: BOX_ID });
+  it("WA — reserved exit code 69", async () => {
+    const result = await run({
+      cmd: [testbin, "--exitcode=69"],
+      box_id: BOX_ID,
+    });
     try {
       expect(result.status).toBe("wrong_answer");
       expect(result.meta.exitcode).toBe(69);
@@ -45,8 +51,11 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("RE — non-zero non-69 exit code", () => {
-    const result = run([testbin, "--exitcode=1"], { box_id: BOX_ID });
+  it("RE — non-zero non-69 exit code", async () => {
+    const result = await run({
+      cmd: [testbin, "--exitcode=1"],
+      box_id: BOX_ID,
+    });
     try {
       expect(result.status).toBe("runtime_error");
       expect(result.meta.status).toBe("RE");
@@ -57,8 +66,8 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("RE — unhandled exception (panic)", () => {
-    const result = run([testbin, "--throw"], { box_id: BOX_ID });
+  it("RE — unhandled exception (panic)", async () => {
+    const result = await run({ cmd: [testbin, "--throw"], box_id: BOX_ID });
     try {
       expect(result.status).toBe("runtime_error");
     } catch (e) {
@@ -67,8 +76,11 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("RE — segfault (SIGSEGV)", () => {
-    const result = run([testbin, "--exitsig=11"], { box_id: BOX_ID });
+  it("RE — segfault (SIGSEGV)", async () => {
+    const result = await run({
+      cmd: [testbin, "--exitsig=11"],
+      box_id: BOX_ID,
+    });
     try {
       expect(result.status).toBe("runtime_error");
       expect(result.meta.status).toBe("SG");
@@ -79,8 +91,12 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("TLE — CPU time limit exceeded", () => {
-    const result = run([testbin, "--time=5"], { time: 1, box_id: BOX_ID });
+  it("TLE — CPU time limit exceeded", async () => {
+    const result = await run({
+      cmd: [testbin, "--time=5"],
+      time: 1,
+      box_id: BOX_ID,
+    });
     try {
       expect(result.status).toBe("time_limit_exceeded");
       expect(result.meta.status).toBe("TO");
@@ -92,8 +108,9 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("TLE — wall clock time limit exceeded", () => {
-    const result = run([testbin, "--sleep=5"], {
+  it("TLE — wall clock time limit exceeded", async () => {
+    const result = await run({
+      cmd: [testbin, "--sleep=5"],
       wall_time: 1,
       box_id: BOX_ID,
     });
@@ -109,8 +126,9 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("MLE — exceeds cgroup memory limit", () => {
-    const result = run([testbin, "--memory=256"], {
+  it("MLE — exceeds cgroup memory limit", async () => {
+    const result = await run({
+      cmd: [testbin, "--memory=256"],
       cg_mem: 65536,
       box_id: BOX_ID,
     });
@@ -123,8 +141,9 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("OLE — stdout exceeds fsize limit", () => {
-    const result = run([testbin, "--write=64,stdout"], {
+  it("OLE — stdout exceeds fsize limit", async () => {
+    const result = await run({
+      cmd: [testbin, "--write=64,stdout"],
       fsize: 1024,
       box_id: BOX_ID,
     });
@@ -138,8 +157,9 @@ describe("Judge Status Results", () => {
     }
   });
 
-  it("OLE — file write exceeds fsize limit", () => {
-    const result = run([testbin, "--write=64,out.bin"], {
+  it("OLE — file write exceeds fsize limit", async () => {
+    const result = await run({
+      cmd: [testbin, "--write=64,out.bin"],
       fsize: 1024,
       box_id: BOX_ID,
     });

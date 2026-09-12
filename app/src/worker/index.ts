@@ -5,12 +5,16 @@ import { dequeueJob, enqueueResult } from "./redis";
 export const consumeJobs = async (params: {
   isolateBoxId: number;
   redis: RedisClientType;
-  signal?: AbortSignal;
+  signal: AbortSignal;
 }) => {
   const { isolateBoxId, signal, redis } = params;
 
+  if (signal.aborted) {
+    return;
+  }
+
   while (true) {
-    signal?.throwIfAborted();
+    signal.throwIfAborted();
     try {
       // get job from redis, if no job in queue, just continue to next loop iteration
       // has the side effect of checking the abort signal, which we only do here

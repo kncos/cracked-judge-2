@@ -1,10 +1,33 @@
+import { CrackedError } from "@/cracked-error";
 import { createClient, type RedisClientType } from "redis";
 import { z } from "zod";
 import { ENV } from "../env";
 import { zJob, zJobResult } from "../types";
 
-export const createRedisClient = async () => {
-  let client = createClient({
+const RedisErrorCodes = [
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ECONNRESET",
+  "EAI_AGAIN",
+] as const;
+type REDIS_ERROR_CODE = (typeof RedisErrorCodes)[number];
+
+interface NodeRedisError extends Error {
+  code?: REDIS_ERROR_CODE;
+}
+
+export const createRedisClient = async (params?: {
+  maxRetries?: number;
+  maxBackoffMs?: number;
+  initialBackoffMs?: number;
+}) => {
+  const {
+    maxRetries = 5,
+    maxBackoffMs = 60 * 1000,
+    initialBackoffMs = 1 * 1000,
+  } = params || {};
+
+  const client = createClient({
     socket: ENV.REDIS_TLS
       ? { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT, tls: ENV.REDIS_TLS }
       : { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT },
@@ -14,7 +37,27 @@ export const createRedisClient = async () => {
   });
 
   client.on("error", (err: Error) => console.error("Redis error:", err));
-  await client.connect();
+
+  let retries = 0;
+  let backoff = initialBackoffMs;
+  while (true) {
+    try {
+      await client.connect();
+      break;
+    } catch (err) {
+      if (retries >= maxRetries) {
+        throw new CrackedError("REDIS_ERROR", {
+          message: "Could not connect to redis client. Max retries exceeded.",
+          cause: err,
+        });
+      }
+
+      retries += 1;
+      await Bun.sleep(backoff);
+      backoff = Math.min(backoff * 2, maxBackoffMs);
+    }
+  }
+
   return client as RedisClientType;
 };
 

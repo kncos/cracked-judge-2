@@ -1,4 +1,6 @@
+import { CrackedError } from "@/cracked-error";
 import type { zJob, zJobResult } from "@/types";
+import { isDirectory, tryCatch } from "@/utils";
 import path from "node:path";
 import type z from "zod";
 import { isolate } from "./commands";
@@ -10,13 +12,36 @@ export const processJob = async (params: {
 }): Promise<z.infer<typeof zJobResult>> => {
   const { job, isolateBoxId } = params;
 
-  const sandboxDir = path.join(getBoxPath(isolateBoxId), "/box");
+  // initialize isolate box. errors can just pass through here
+  await isolate.init(isolateBoxId);
 
-  await Promise.all(
-    job.files.map(({ name, contents }) =>
-      Bun.write(path.join(sandboxDir, name), contents),
+  // ensure existence of sandbox directory
+  const sandboxDir = path.join(getBoxPath(isolateBoxId), "/box");
+  const isDir = await isDirectory(sandboxDir);
+  if (isDir === "does-not-exist") {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message: `Failed to stat directory: ${sandboxDir}`,
+    });
+  } else if (isDir == "is-not-dir") {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message: `${sandboxDir} Exists but is not a directory.`,
+    });
+  }
+
+  // write all of the files into the sandbox directory
+  const { error: fileWriteErr } = await tryCatch(
+    Promise.all(
+      job.files.map(({ name, contents }) =>
+        Bun.write(path.join(sandboxDir, name), contents),
+      ),
     ),
   );
+  if (fileWriteErr) {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message: "Failed to write job files",
+      cause: fileWriteErr,
+    });
+  }
 
   const commandResults: z.infer<typeof zJobResult>["commandResults"] = [];
   for (const cmd of job.commands) {
@@ -24,6 +49,8 @@ export const processJob = async (params: {
     const result = await isolate.run({ ...cmd, box_id: isolateBoxId });
     commandResults.push(result);
   }
+
+  await isolate.cleanup(isolateBoxId);
 
   const result: z.infer<typeof zJobResult> = {
     commandResults,

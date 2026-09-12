@@ -46,6 +46,25 @@ export const truncateStr = (text: string, maxLen: number = 256) => {
   return `${text.slice(0, maxLen - truncatedEnd.length)}${truncatedEnd}`;
 };
 
+export type IsDirectoryResult = "is-dir" | "is-not-dir" | "does-not-exist";
+export const isDirectory = async (
+  pathStr: string,
+): Promise<IsDirectoryResult> => {
+  let isDir = false;
+  try {
+    const stat = await Bun.file(pathStr).stat();
+    isDir = stat.isDirectory();
+  } catch (e) {
+    return "does-not-exist";
+  }
+
+  if (!isDir) {
+    return "is-not-dir";
+  }
+
+  return "is-dir";
+};
+
 export const exitCodeSignalMapping: Record<number, NodeJS.Signals> = {
   129: "SIGHUP",
   130: "SIGINT",

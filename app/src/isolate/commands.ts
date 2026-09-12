@@ -2,7 +2,7 @@ import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
 import { sh, stringifyShResult } from "../shell";
-import type { zJobCommandResult } from "../types";
+import { isStrArray, type zJobCommandResult } from "../types";
 import {
   getBoxPath,
   interpretMeta,
@@ -59,7 +59,6 @@ export const cleanup = async (boxId: number) => {
  * @returns
  */
 export const run = async (
-  execCmd: string[],
   params: z.infer<typeof zIsolateRunOpts>,
 ): Promise<z.infer<typeof zJobCommandResult>> => {
   // do this here to get the box path, but we won't rely on this.
@@ -70,7 +69,7 @@ export const run = async (
   const stderrPath = path.join(boxPath, "box", "stderr.txt");
 
   // always want these args
-  const cmd = [
+  const shCmd = [
     "isolate",
     "--cg",
     "--run",
@@ -103,32 +102,37 @@ export const run = async (
       case "open_files":
       case "fsize":
       case "box_id":
-        cmd.push(`${kAsArg}=${v as number}`);
+        shCmd.push(`${kAsArg}=${v as number}`);
         break;
       case "quota": {
         const { blocks, inodes } = v as NonNullable<(typeof params)["quota"]>;
-        cmd.push(`${kAsArg}=${blocks},${inodes}`);
+        shCmd.push(`${kAsArg}=${blocks},${inodes}`);
         break;
       }
       case "processes": {
         if (typeof v === "number") {
-          cmd.push(`${kAsArg}=${v}`);
+          shCmd.push(`${kAsArg}=${v}`);
         }
         // if not a number, this can only be true. no check needed
         else {
-          cmd.push(kAsArg);
+          shCmd.push(kAsArg);
         }
         break;
+      }
+      case "add_readonly_dirs": {
+        if (isStrArray(v)) {
+          v.forEach((pathStr) => shCmd.push(`--dir=${path.resolve(pathStr)}`));
+        }
       }
     }
   }
 
   // separate isolate args from the command we're running using `--`
-  cmd.push("--", ...execCmd);
+  shCmd.push("--", ...params.cmd);
 
   // unused, we don't actually want to run logging on this because
   // it should just exit with a metadata file with the info we need
-  const proc = await sh(cmd);
+  const proc = await sh(shCmd);
 
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);

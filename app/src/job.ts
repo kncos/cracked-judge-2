@@ -4,7 +4,6 @@ import type z from "zod";
 import { isolate } from "./isolate/commands";
 import { getBoxPath } from "./isolate/isolate-utils";
 import { dequeueJob, enqueueResult } from "./redis";
-import { sh } from "./shell";
 import type { zJobResult } from "./types";
 
 export const processJob = async (params: {
@@ -24,15 +23,6 @@ export const processJob = async (params: {
 
   const job = await dequeueJob(redis, signal);
 
-  if (job.hashesToLoad) {
-    await Promise.all(
-      // command: `tar -xf - -C ${sandboxDir} < ${getDepFilename(hash)}`
-      job.hashesToLoad.map((hash) =>
-        sh(["cp", `/opt/cracked-judge/${hash}/*`, "-t", `${sandboxDir}/`]),
-      ),
-    );
-  }
-
   await Promise.all(
     job.files.map(({ name, contents }) =>
       Bun.write(path.join(sandboxDir, name), contents),
@@ -40,11 +30,9 @@ export const processJob = async (params: {
   );
 
   const commandResults: z.infer<typeof zJobResult>["commandResults"] = [];
-  for (const command of job.commands) {
+  for (const cmd of job.commands) {
     // todo: add support for run options
-    const result = await isolate.run(command, {
-      box_id: isolateBoxId,
-    });
+    const result = await isolate.run(cmd);
     commandResults.push(result);
   }
 

@@ -4,6 +4,8 @@ import type { JudgeStatus } from "../types";
 import { signalCodeMapping } from "../utils";
 
 export const zIsolateRunOpts = z.object({
+  cmd: z.array(z.string().nonempty()).nonempty(),
+  box_id: z.int(),
   time: z.number().nonnegative().optional(),
   cg_mem: z.int().nonnegative().optional(),
   wall_time: z.number().nonnegative().optional(),
@@ -18,7 +20,7 @@ export const zIsolateRunOpts = z.object({
     })
     .optional(),
   processes: z.int().or(z.literal(true)).optional(),
-  box_id: z.int(),
+  add_readonly_dirs: z.array(z.string().nonempty()).optional(),
 });
 
 export const zIsolateMeta = z.object({

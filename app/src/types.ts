@@ -1,5 +1,5 @@
 import z from "zod";
-import { zIsolateMeta } from "./isolate/isolate-utils";
+import { zIsolateMeta, zIsolateRunOpts } from "./isolate/isolate-utils";
 
 export const JUDGE_STATUS_CODES = [
   "internal_error",
@@ -16,14 +16,13 @@ export type JudgeStatus = (typeof JUDGE_STATUS_CODES)[number];
 
 export const zJob = z.object({
   id: z.string(),
-  commands: z.array(z.array(z.string())),
+  commands: z.array(zIsolateRunOpts),
   files: z.array(
     z.object({
       name: z.string().nonempty(),
       contents: z.string(),
     }),
   ),
-  hashesToLoad: z.array(z.string()).optional(),
   saveAsHash: z.boolean().optional(),
 });
 
@@ -40,3 +39,6 @@ export const zJobResult = z.object({
   commandResults: z.array(zJobCommandResult),
   savedHash: z.string().optional(),
 });
+
+export const isStrArray = (input: any): input is Array<string> =>
+  Array.isArray(input) && input.every((val) => typeof val === "string");

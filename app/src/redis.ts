@@ -1,30 +1,17 @@
 import { createClient, type RedisClientType } from "redis";
 import { z } from "zod";
+import { ENV } from "./env";
 import { zJob, zJobResult } from "./types";
 
-export const zRedisConfigSchema = z.object({
-  host: z.string().default("localhost"),
-  port: z.number().int().positive().default(6379),
-  password: z.string().optional(),
-  username: z.string().optional(),
-  tls: z.boolean().default(false),
-  db: z.number().int().min(0).max(15).default(0),
-});
-export type RedisConfig = z.infer<typeof zRedisConfigSchema>;
-
-export const createRedisClient = async (params?: {
-  config?: z.input<typeof zRedisConfigSchema>;
-  signal?: AbortSignal;
-}) => {
-  const { config, signal } = params || {};
-  const conf = zRedisConfigSchema.parse(config || {});
+export const createRedisClient = async (params?: { signal?: AbortSignal }) => {
+  const { signal } = params || {};
   let client = createClient({
-    socket: conf.tls
-      ? { host: conf.host, port: conf.port, tls: true }
-      : { host: conf.host, port: conf.port },
-    username: conf.username,
-    password: conf.password,
-    database: conf.db,
+    socket: ENV.REDIS_TLS
+      ? { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT, tls: ENV.REDIS_TLS }
+      : { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT },
+    username: ENV.REDIS_USERNAME,
+    password: ENV.REDIS_PASSWORD,
+    database: ENV.REDIS_DB,
   });
   if (signal) client = client.withAbortSignal(signal);
 

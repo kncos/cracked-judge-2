@@ -17,9 +17,21 @@ export const hashDirContents = async (dir: string): Promise<string> => {
   const result = z.hash("sha256").safeParse(hashOut);
   if (!result.success) {
     throw new CrackedError("SYSTEM_ERROR", {
-      message: `hashdir output was not a valid sha256 hash. Output: ${hashOut}`,
+      message:
+        `hashdir output was not a valid sha256 hash.\n` +
+        `\tdirectory: ${dir}\n` +
+        `\thashdir output: ${hashOut}\n`,
     });
   }
 
   return result.data;
+};
+
+export const relocateDir = async (dst: string, src: string): Promise<void> => {
+  const res = await sh(["mkdir", "-p", dst, "&&", "mv", src, dst]);
+  if (res.exitCode !== 0) {
+    throw new CrackedError("SYSTEM_ERROR", {
+      message: stringifyShResult(res, "relocateDir failed:"),
+    });
+  }
 };

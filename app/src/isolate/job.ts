@@ -1,4 +1,6 @@
 import { CrackedError } from "@/cracked-error";
+import { ENV } from "@/env";
+import { hashDirContents, relocateDir } from "@/system/file";
 import type { zJob, zJobResult } from "@/types";
 import { isDirectory, tryCatch } from "@/utils";
 import path from "node:path";
@@ -37,7 +39,7 @@ export const processJob = async (params: {
     ),
   );
   if (fileWriteErr) {
-    throw new CrackedError("ISOLATE_ERROR", {
+    throw new CrackedError("OTHER", {
       message: "Failed to write job files",
       cause: fileWriteErr,
     });
@@ -51,6 +53,10 @@ export const processJob = async (params: {
   }
 
   if (job.saveAsHash) {
+    // pass through errs
+    const hash = await hashDirContents(sandboxDir);
+    const dst = path.join(ENV.JOB_SAVE_PATH, hash);
+    await relocateDir(sandboxDir, dst);
   }
 
   await isolate.cleanup(isolateBoxId);

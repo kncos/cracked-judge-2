@@ -93,6 +93,7 @@ describe("job consumer test", () => {
         ],
         id: String(i),
         commands: [{ cmd: ["/bin/sh", "run.sh"] }],
+        saveAsHash: true,
       } satisfies z.infer<typeof zJob>;
 
       await enqueueJob(redis!, job);

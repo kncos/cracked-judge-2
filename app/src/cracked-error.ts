@@ -2,6 +2,7 @@ export type CrackedErrorCode =
   | "REDIS_ERROR"
   | "ISOLATE_ERROR"
   | "PARSE_ERROR"
+  | "SYSTEM_ERROR"
   | "OTHER";
 
 export class CrackedError extends Error {

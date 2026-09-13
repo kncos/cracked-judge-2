@@ -50,6 +50,9 @@ export const processJob = async (params: {
     commandResults.push(result);
   }
 
+  if (job.saveAsHash) {
+  }
+
   await isolate.cleanup(isolateBoxId);
 
   const result: z.infer<typeof zJobResult> = {

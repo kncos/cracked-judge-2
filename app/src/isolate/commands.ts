@@ -2,7 +2,7 @@ import { isDirectory } from "@/utils";
 import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
-import { sh, stringifyShResult } from "../shell";
+import { sh, stringifyShResult } from "../system/shell";
 import { isStrArray, type zJobCommandResult } from "../types";
 import {
   getBoxPath,

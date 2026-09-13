@@ -1,5 +1,5 @@
 import { spawn } from "bun";
-import { indentStr, truncateStr } from "./utils";
+import { indentStr, truncateStr } from "../utils";
 
 export type ShResult = {
   cmd: string[];

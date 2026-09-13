@@ -70,11 +70,12 @@ export const enqueueJob = async (
   job: z.infer<typeof zJob>,
 ) => {
   const payload = JSON.stringify(job);
-  return await redis
+  const res = await redis
     .multi()
     .lPush(JOBS_QUEUE, payload)
     .expire(JOBS_QUEUE, TTL_SECONDS)
     .exec();
+  return res;
 };
 
 export const dequeueJob = async (

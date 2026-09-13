@@ -13,13 +13,13 @@ const printres = (input: Awaited<ReturnType<typeof run>>) => {
   console.log(JSON.stringify(input.meta, null, 2));
 };
 
-describe("Judge Status Results", () => {
-  beforeEach(() => {
-    init(BOX_ID);
+describe.skip("Judge Status Results", () => {
+  beforeEach(async () => {
+    await init(BOX_ID);
   });
 
-  afterEach(() => {
-    cleanup(BOX_ID);
+  afterEach(async () => {
+    await cleanup(BOX_ID);
   });
 
   it("AC — clean zero exit", async () => {

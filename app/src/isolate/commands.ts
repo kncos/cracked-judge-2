@@ -1,3 +1,4 @@
+import { isDirectory } from "@/utils";
 import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
@@ -64,6 +65,16 @@ export const run = async (
   // do this here to get the box path, but we won't rely on this.
   // with isolate, it's a no-op if init is run twice
   const boxPath = getBoxPath(params.box_id);
+  const boxPathIsDir = await isDirectory(boxPath);
+  if (boxPathIsDir !== "is-dir") {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message:
+        `Box path is not a valid directory.\n` +
+        `\tstatus: ${boxPathIsDir}\n` +
+        `\texpected dir: ${boxPath}\n`,
+    });
+  }
+
   const metaPath = path.join(boxPath, "box", "metadata.out");
   const stdoutPath = path.join(boxPath, "box", "stdout.txt");
   const stderrPath = path.join(boxPath, "box", "stderr.txt");
@@ -148,7 +159,21 @@ export const run = async (
       `  stdout: ${stdoutPath} - exists: ${stdoutExists}\n` +
       `  stderr: ${stderrPath} - exists: ${stderrExists}\n` +
       `  meta: ${metaPath} - exists: ${metaExists}\n`;
-    throw new CrackedError("ISOLATE_ERROR", { message });
+
+    let msgExtra = "";
+    const lscmd = ["ls", "-lR", boxPath];
+    try {
+      const ls = await sh(lscmd);
+      msgExtra = [
+        "======== ls output ========",
+        stringifyShResult(ls),
+        "===========================",
+      ].join("\n");
+    } catch (e) {
+      msgExtra = `Failed to run command: ${lscmd.join(" ")}\n`;
+    }
+
+    throw new CrackedError("ISOLATE_ERROR", { message: message + msgExtra });
   }
 
   // relevant information from the runtime

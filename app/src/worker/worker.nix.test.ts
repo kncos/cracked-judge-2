@@ -2,10 +2,12 @@ import type { zJob } from "@/types";
 import { afterAll, beforeAll, describe, it } from "bun:test";
 import type { RedisClientType } from "redis";
 import type z from "zod";
+import { consumeJobs } from ".";
 import { createRedisClient, dequeueResult, enqueueJob } from "./redis";
 
 const python = `import math
 import time
+import random
 
 def is_prime(n: int) -> bool:
     """Trial division via 6k±1 — O(sqrt(n)) time, O(1) memory."""
@@ -53,17 +55,30 @@ if __name__ == "__main__":
 
 describe("job consumer test", () => {
   let redis: RedisClientType | null = null;
+  let controller: AbortController | null = null;
 
   beforeAll(async () => {
     redis = await createRedisClient();
     await redis.flushAll();
+    controller = new AbortController();
+    consumeJobs({
+      isolateBoxId: 0,
+      redis,
+      signal: controller.signal,
+    }).catch((e) => {
+      if (e instanceof Error && e.name === "AbortError") {
+        return;
+      } else {
+        console.error("unexpected error in consumeJobs: ", e);
+      }
+    });
   });
 
   afterAll(async () => {
-    if (redis) redis.destroy();
+    controller?.abort();
   });
 
-  it("pushing 3 jobs", async () => {
+  it("running consumer", async () => {
     for (let i = 0; i < 3; i++) {
       const job = {
         files: [
@@ -71,27 +86,33 @@ describe("job consumer test", () => {
             name: "main.py",
             contents: python,
           },
+          {
+            name: "run.sh",
+            contents: "python -X jit -E -S -B -u main.py",
+          },
         ],
         id: String(i),
-        commands: [
-          { cmd: ["python3", "-X", "jit", "-E", "-S", "-B", "-u", "main.py"] },
-        ],
+        commands: [{ cmd: ["/bin/sh", "run.sh"] }],
       } satisfies z.infer<typeof zJob>;
 
       await enqueueJob(redis!, job);
     }
-  });
 
-  it("popping 3 results", async () => {
-    const results = await Promise.all(
-      Array.from({ length: 3 }).map((_, i) => {
-        dequeueResult(redis!, String(i));
-      }),
-    );
+    const consumeResult = async (
+      jobId: string,
+      retries: number = 5,
+      blockSecs: number = 1,
+    ) => {
+      for (let i = 0; i < retries; i++) {
+        const res = await dequeueResult(redis!, jobId, blockSecs);
+        if (res !== null) return res;
+      }
+      return null;
+    };
 
-    for (const r of results) {
-      console.log("RESULT:\n", JSON.stringify(r, null, 2));
-      console.log("");
+    for (let i = 0; i < 3; i++) {
+      const result = await consumeResult(String(i));
+      console.error("RESULT:\n", JSON.stringify(result, null, 2), "\n");
     }
   });
 });

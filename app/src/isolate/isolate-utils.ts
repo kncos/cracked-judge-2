@@ -1,7 +1,8 @@
+import path from "node:path";
 import z from "zod";
 import { CrackedError } from "../cracked-error";
 import type { JudgeStatus } from "../types";
-import { signalCodeMapping } from "../utils";
+import { isDirectory, signalCodeMapping } from "../utils";
 
 export const zIsolateRunOpts = z.object({
   cmd: z.array(z.string().nonempty()).nonempty(),
@@ -122,6 +123,23 @@ export const interpretMeta = (
 
   return { status: "accepted", message: "Submission Accepted" };
 };
+
 // this is the default path template and is exactly what isolate init
 // is returning, so we'll make the assumption that this will hold true for now
 export const getBoxPath = (boxId: number) => `/var/lib/isolate/boxes/${boxId}`;
+
+export const getValidSandboxWorkdir = async (boxId: number) => {
+  const sandboxDir = path.join(getBoxPath(boxId), "/box");
+  const isDir = await isDirectory(sandboxDir);
+  if (isDir === "does-not-exist") {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message: `Failed to stat directory: ${sandboxDir}`,
+    });
+  } else if (isDir == "is-not-dir") {
+    throw new CrackedError("ISOLATE_ERROR", {
+      message: `${sandboxDir} Exists but is not a directory.`,
+    });
+  }
+
+  return sandboxDir;
+};

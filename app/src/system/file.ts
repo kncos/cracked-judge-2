@@ -1,4 +1,5 @@
 import { CrackedError } from "@/cracked-error";
+import path from "node:path";
 import z from "zod";
 import { sh, stringifyShResult } from "./shell";
 
@@ -27,11 +28,41 @@ export const hashDirContents = async (dir: string): Promise<string> => {
   return result.data;
 };
 
-export const relocateDir = async (dst: string, src: string): Promise<void> => {
-  const res = await sh(["mkdir", "-p", dst, "&&", "mv", src, dst]);
-  if (res.exitCode !== 0) {
+export const relocateDir = async (params: {
+  src: string;
+  dst: string;
+}): Promise<void> => {
+  const { src, dst } = params;
+  const absDst = path.resolve(dst);
+  const absSrc = path.resolve(src);
+
+  const mkdirRes = await sh(["mkdir", "-p", path.dirname(absDst)]);
+  if (mkdirRes.exitCode !== 0) {
     throw new CrackedError("SYSTEM_ERROR", {
-      message: stringifyShResult(res, "relocateDir failed:"),
+      message: stringifyShResult(mkdirRes, "relocateDir failed:"),
+    });
+  }
+
+  const mvRes = await sh(["mv", absSrc, absDst]);
+  if (mvRes.exitCode !== 0) {
+    throw new CrackedError("SYSTEM_ERROR", {
+      message: stringifyShResult(mvRes, "relocateDir failed:"),
+    });
+  }
+};
+
+export const makeNeighborSymlink = async (params: {
+  dir: string;
+  link_name: string;
+}) => {
+  const { dir, link_name } = params;
+  const parent = path.dirname(dir);
+  const relative_src = path.basename(dir);
+  const link_full_path = path.join(parent, link_name);
+  const ln = await sh(["ln", "-s", relative_src, link_full_path]);
+  if (ln.exitCode !== 0) {
+    throw new CrackedError("SYSTEM_ERROR", {
+      message: stringifyShResult(ln, "makeNeighborSymlink failed"),
     });
   }
 };

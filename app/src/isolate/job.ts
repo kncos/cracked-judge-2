@@ -1,12 +1,45 @@
 import { CrackedError } from "@/cracked-error";
 import { ENV } from "@/env";
-import { hashDirContents, relocateDir } from "@/system/file";
+import {
+  hashDirContents,
+  makeNeighborSymlink,
+  relocateDir,
+} from "@/system/file";
 import type { zJob, zJobResult } from "@/types";
-import { isDirectory, tryCatch } from "@/utils";
 import path from "node:path";
 import type z from "zod";
 import { isolate } from "./commands";
-import { getBoxPath } from "./isolate-utils";
+import { getValidSandboxWorkdir } from "./isolate-utils";
+
+const saveAsHash = async (dir: string, id?: string) => {
+  const hash = await hashDirContents(dir);
+  const dst = path.join(ENV.JOB_SAVE_PATH, hash);
+  await relocateDir({ src: dir, dst });
+  if (id) {
+    await makeNeighborSymlink({
+      dir: dst,
+      link_name: id,
+    });
+  }
+};
+
+const writeJobFiles = async (params: {
+  files: z.infer<typeof zJob>["files"];
+  base_dir: string;
+}) => {
+  const { files, base_dir } = params;
+  try {
+    const writeOps = files.map(({ name, contents }) =>
+      Bun.write(path.join(base_dir, name), contents),
+    );
+    await Promise.all(writeOps);
+  } catch (e) {
+    throw new CrackedError("OTHER", {
+      message: "Failed to write job files",
+      cause: e,
+    });
+  }
+};
 
 export const processJob = async (params: {
   job: z.infer<typeof zJob>;
@@ -18,32 +51,13 @@ export const processJob = async (params: {
   await isolate.init(isolateBoxId);
 
   // ensure existence of sandbox directory
-  const sandboxDir = path.join(getBoxPath(isolateBoxId), "/box");
-  const isDir = await isDirectory(sandboxDir);
-  if (isDir === "does-not-exist") {
-    throw new CrackedError("ISOLATE_ERROR", {
-      message: `Failed to stat directory: ${sandboxDir}`,
-    });
-  } else if (isDir == "is-not-dir") {
-    throw new CrackedError("ISOLATE_ERROR", {
-      message: `${sandboxDir} Exists but is not a directory.`,
-    });
-  }
+  const sandboxDir = await getValidSandboxWorkdir(isolateBoxId);
 
   // write all of the files into the sandbox directory
-  const { error: fileWriteErr } = await tryCatch(
-    Promise.all(
-      job.files.map(({ name, contents }) =>
-        Bun.write(path.join(sandboxDir, name), contents),
-      ),
-    ),
-  );
-  if (fileWriteErr) {
-    throw new CrackedError("OTHER", {
-      message: "Failed to write job files",
-      cause: fileWriteErr,
-    });
-  }
+  await writeJobFiles({
+    files: job.files,
+    base_dir: sandboxDir,
+  });
 
   const commandResults: z.infer<typeof zJobResult>["commandResults"] = [];
   for (const cmd of job.commands) {
@@ -53,10 +67,7 @@ export const processJob = async (params: {
   }
 
   if (job.saveAsHash) {
-    // pass through errs
-    const hash = await hashDirContents(sandboxDir);
-    const dst = path.join(ENV.JOB_SAVE_PATH, hash);
-    await relocateDir(sandboxDir, dst);
+    await saveAsHash(sandboxDir, job.id);
   }
 
   await isolate.cleanup(isolateBoxId);

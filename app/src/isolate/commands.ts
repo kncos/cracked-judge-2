@@ -1,4 +1,3 @@
-import { isDirectory } from "@/utils";
 import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
@@ -6,6 +5,7 @@ import { sh, stringifyShResult } from "../system/shell";
 import { isStrArray, type zJobCommandResult } from "../types";
 import {
   getBoxPath,
+  getValidSandboxWorkdir,
   interpretMeta,
   parseMeta,
   zIsolateRunOpts,
@@ -64,20 +64,11 @@ export const run = async (
 ): Promise<z.infer<typeof zJobCommandResult>> => {
   // do this here to get the box path, but we won't rely on this.
   // with isolate, it's a no-op if init is run twice
-  const boxPath = getBoxPath(params.box_id);
-  const boxPathIsDir = await isDirectory(boxPath);
-  if (boxPathIsDir !== "is-dir") {
-    throw new CrackedError("ISOLATE_ERROR", {
-      message:
-        `Box path is not a valid directory.\n` +
-        `\tstatus: ${boxPathIsDir}\n` +
-        `\texpected dir: ${boxPath}\n`,
-    });
-  }
+  const box_wd = await getValidSandboxWorkdir(params.box_id);
 
-  const metaPath = path.join(boxPath, "box", "metadata.out");
-  const stdoutPath = path.join(boxPath, "box", "stdout.txt");
-  const stderrPath = path.join(boxPath, "box", "stderr.txt");
+  const metaPath = path.join(box_wd, "metadata.out");
+  const stdoutPath = path.join(box_wd, "stdout.txt");
+  const stderrPath = path.join(box_wd, "stderr.txt");
 
   // always want these args
   const shCmd = [
@@ -161,7 +152,7 @@ export const run = async (
       `  meta: ${metaPath} - exists: ${metaExists}\n`;
 
     let msgExtra = "";
-    const lscmd = ["ls", "-lR", boxPath];
+    const lscmd = ["ls", "-lR", box_wd];
     try {
       const ls = await sh(lscmd);
       msgExtra = [

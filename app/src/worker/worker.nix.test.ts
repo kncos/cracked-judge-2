@@ -1,4 +1,5 @@
 import type { zJob } from "@/types";
+import { randomUUIDv7 } from "bun";
 import { afterAll, beforeAll, describe, it } from "bun:test";
 import type { RedisClientType } from "redis";
 import type z from "zod";
@@ -79,8 +80,12 @@ describe("job consumer test", () => {
   });
 
   it("running consumer", async () => {
-    for (let i = 0; i < 3; i++) {
+    // 3 random IDs
+    const ids = [randomUUIDv7(), randomUUIDv7(), randomUUIDv7()];
+
+    for (const id of ids) {
       const job = {
+        id,
         files: [
           {
             name: "main.py",
@@ -91,7 +96,6 @@ describe("job consumer test", () => {
             contents: "python -X jit -E -S -B -u main.py",
           },
         ],
-        id: String(i),
         commands: [{ cmd: ["/bin/sh", "run.sh"] }],
         saveAsHash: true,
       } satisfies z.infer<typeof zJob>;
@@ -111,8 +115,8 @@ describe("job consumer test", () => {
       return null;
     };
 
-    for (let i = 0; i < 3; i++) {
-      const result = await consumeResult(String(i));
+    for (const id of ids) {
+      const result = await consumeResult(id);
       console.error("RESULT:\n", JSON.stringify(result, null, 2), "\n");
     }
   });

@@ -21,7 +21,7 @@ in
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
-        ExecStart = "${app}/bin/app";
+        ExecStart = "${pkgs.bash}/bin/bash -lc 'exec ${app}/bin/judge-app'";
         Restart = "on-failure";
         RestartSec = "1s";
         TimeoutStopSec = 60;

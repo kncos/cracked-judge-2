@@ -6,7 +6,7 @@ const zEnv = z.object({
 
   // redis stuff
   REDIS_HOST: z.string().default("localhost"),
-  REDIS_PORT: z.number().int().positive().default(6379),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
   REDIS_PASSWORD: z.string().optional(),
   REDIS_USERNAME: z.string().optional(),
   REDIS_TLS: z.literal(true).optional(),

@@ -1,11 +1,9 @@
 import { ENV } from "@/env";
 import type { zJob, zJobResult } from "@/types";
 import { randomUUIDv7 } from "bun";
-import { afterAll, beforeAll, describe, it } from "bun:test";
+import { describe, it } from "bun:test";
 import path from "node:path";
-import type { RedisClientType } from "redis";
 import type z from "zod";
-import { consumeJobs } from ".";
 import { createRedisClient, dequeueResult, enqueueJob } from "./redis";
 
 const python = `import math
@@ -100,30 +98,6 @@ const submitJob = async (
 };
 
 describe("job consumer test", () => {
-  let redis: RedisClientType | null = null;
-  let controller: AbortController | null = null;
-
-  beforeAll(async () => {
-    redis = await createRedisClient();
-    await redis.flushAll();
-    controller = new AbortController();
-    consumeJobs({
-      isolateBoxId: 0,
-      redis,
-      signal: controller.signal,
-    }).catch((e) => {
-      if (e instanceof Error && e.name === "AbortError") {
-        return;
-      } else {
-        console.error("unexpected error in consumeJobs: ", e);
-      }
-    });
-  });
-
-  afterAll(async () => {
-    controller?.abort();
-  });
-
   it.skip("running consumer", async () => {
     // 3 random IDs
     const ids = [randomUUIDv7(), randomUUIDv7(), randomUUIDv7()];

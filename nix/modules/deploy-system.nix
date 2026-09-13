@@ -11,7 +11,7 @@
   ];
 
   isolate.enable = true;
-  app.enable = true;
+  services.app.enable = true;
 
   boot = {
     # loader.grub.enable = false;
@@ -52,9 +52,11 @@
     coredump.enable = false;
   };
 
+  networking.firewall.allowedTCPPorts = [ 6379 ];
+
   services.redis.servers."" = {
     enable = true;
-    bind = "127.0.0.1";
+    bind = "0.0.0.0";
   };
 
   fileSystems = {

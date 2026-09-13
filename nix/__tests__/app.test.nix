@@ -7,12 +7,18 @@ pkgs.testers.nixosTest {
       ./base-config.nix
     ];
 
-    # disable
-    app.enable = false;
-
     environment.systemPackages = [
       (pkgs.callPackage ../pkgs/app-test.nix { }) # installs our application service
     ];
+
+    virtualisation.forwardPorts = [
+      {
+        from = "host";
+        host.port = 6380;
+        guest.port = 6379;
+      }
+    ];
+
   };
 
   testScript = ''

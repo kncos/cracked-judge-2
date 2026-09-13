@@ -135,6 +135,7 @@ export const run = async (
   // unused, we don't actually want to run logging on this because
   // it should just exit with a metadata file with the info we need
   const proc = await sh(shCmd);
+  // console.error(stringifyShResult(proc, "ISOLATE RUN DEBUG:"));
 
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);

@@ -66,3 +66,13 @@ export const makeNeighborSymlink = async (params: {
     });
   }
 };
+
+export const derefLink = async (dir: string) => {
+  const realpath = await sh(["realpath", dir]);
+  if (realpath.exitCode !== 0) {
+    throw new CrackedError("SYSTEM_ERROR", {
+      message: stringifyShResult(realpath, "derefLink failed"),
+    });
+  }
+  return realpath.stdout.trim();
+};

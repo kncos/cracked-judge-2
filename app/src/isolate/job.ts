@@ -5,6 +5,7 @@ import {
   makeNeighborSymlink,
   relocateDir,
 } from "@/system/file";
+import { sh, stringifyShResult } from "@/system/shell";
 import type { zJob, zJobResult } from "@/types";
 import path from "node:path";
 import type z from "zod";
@@ -19,6 +20,15 @@ const saveAsHash = async (dir: string, id?: string) => {
     await makeNeighborSymlink({
       dir: dst,
       link_name: id,
+    });
+  }
+  const chmod = await sh(["chmod", "-R", "a+rX", dst]);
+  if (chmod.exitCode !== 0) {
+    throw new CrackedError("SYSTEM_ERROR", {
+      message: stringifyShResult(
+        chmod,
+        "saveAsHash failed to change mode of output:",
+      ),
     });
   }
 };

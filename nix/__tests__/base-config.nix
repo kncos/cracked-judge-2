@@ -5,7 +5,6 @@
   ...
 }:
 {
-  # requires this because we intentionally trigger oom to test isolate
   boot.kernelParams = [
     "loglevel=3"
     "quiet"

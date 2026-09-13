@@ -7,9 +7,11 @@
 {
   imports = [
     ./isolate.nix
+    ./app.nix
   ];
 
   isolate.enable = true;
+  app.enable = true;
 
   boot = {
     # loader.grub.enable = false;

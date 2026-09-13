@@ -7,6 +7,9 @@ pkgs.testers.nixosTest {
       ./base-config.nix
     ];
 
+    # disable
+    app.enable = false;
+
     environment.systemPackages = [
       (pkgs.callPackage ../pkgs/app-test.nix { }) # installs our application service
     ];

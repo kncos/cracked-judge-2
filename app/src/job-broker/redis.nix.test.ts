@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import type z from "zod";
-import type { zJob, zJobResult } from "../types";
 import {
   createRedisClient,
   dequeueJob,
   dequeueResult,
   enqueueJob,
   enqueueResult,
-} from "./redis";
+} from ".";
+import type { zJob, zJobResult } from "../types";
 
 describe.skip("basic redis tests", () => {
   beforeEach(async () => {

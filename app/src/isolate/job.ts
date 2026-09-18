@@ -1,5 +1,6 @@
 import { CrackedError } from "@/cracked-error";
 import { ENV } from "@/env";
+import { dequeueJob, enqueueResult } from "@/job-broker";
 import {
   hashDirContents,
   makeNeighborSymlink,
@@ -7,7 +8,9 @@ import {
 } from "@/system/file";
 import { sh, stringifyShResult } from "@/system/shell";
 import type { zJob, zJobResult } from "@/types";
+import * as Bun from "bun";
 import path from "node:path";
+import type { RedisClientType } from "redis";
 import type z from "zod";
 import { isolate } from "./commands";
 import { getValidSandboxWorkdir } from "./isolate-utils";
@@ -88,4 +91,35 @@ export const processJob = async (params: {
   };
 
   return result;
+};
+export const consumeJobs = async (params: {
+  isolateBoxId: number;
+  redis: RedisClientType;
+  signal: AbortSignal;
+}) => {
+  const { isolateBoxId, signal, redis } = params;
+
+  if (signal.aborted) {
+    return;
+  }
+
+  while (true) {
+    signal.throwIfAborted();
+    try {
+      // get job from redis, if no job in queue, just continue to next loop iteration
+      // has the side effect of checking the abort signal, which we only do here
+      // because we don't want to abort mid-job
+      const job = await dequeueJob(redis);
+      if (job == null) {
+        continue;
+      }
+
+      const result = await processJob({ job, isolateBoxId });
+      await enqueueResult(redis, result);
+    } catch (e) {
+      console.error(`Error in worker ${isolateBoxId}: `, e);
+      console.error(`Worker ${isolateBoxId} - sleeping for 1000ms`);
+      await Bun.sleep(1000);
+    }
+  }
 };

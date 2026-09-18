@@ -1,8 +1,7 @@
 import { CrackedError } from "@/cracked-error";
 import { createClient, type RedisClientType } from "redis";
 import { z } from "zod";
-import { ENV } from "../env";
-import { zJob, zJobResult } from "../types";
+import { zJob, zJobResult, zRedisConfig } from "../types";
 
 const RedisErrorCodes = [
   "ECONNREFUSED",
@@ -20,20 +19,26 @@ export const createRedisClient = async (params?: {
   maxRetries?: number;
   maxBackoffMs?: number;
   initialBackoffMs?: number;
+  config?: z.infer<typeof zRedisConfig>;
 }) => {
   const {
     maxRetries = 5,
     maxBackoffMs = 60 * 1000,
     initialBackoffMs = 1 * 1000,
+    config = zRedisConfig.parse({}),
   } = params || {};
 
   const client = createClient({
-    socket: ENV.REDIS_TLS
-      ? { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT, tls: ENV.REDIS_TLS }
-      : { host: ENV.REDIS_HOST, port: ENV.REDIS_PORT },
-    username: ENV.REDIS_USERNAME,
-    password: ENV.REDIS_PASSWORD,
-    database: ENV.REDIS_DB,
+    socket: config.REDIS_TLS
+      ? {
+          host: config.REDIS_HOST,
+          port: config.REDIS_PORT,
+          tls: config.REDIS_TLS,
+        }
+      : { host: config.REDIS_HOST, port: config.REDIS_PORT },
+    username: config.REDIS_USERNAME,
+    password: config.REDIS_PASSWORD,
+    database: config.REDIS_DB,
   });
 
   client.on("error", (err: Error) => console.error("Redis error:", err));

@@ -4,7 +4,7 @@ import { randomUUIDv7 } from "bun";
 import { describe, it } from "bun:test";
 import path from "node:path";
 import type z from "zod";
-import { createRedisClient, dequeueResult, enqueueJob } from "./redis";
+import { createRedisClient, dequeueResult, enqueueJob } from ".";
 
 const python = `import math
 import time
@@ -85,7 +85,9 @@ int main(void) {
 const submitJob = async (
   job: z.infer<typeof zJob>,
 ): Promise<z.infer<typeof zJobResult> | null> => {
-  const redis = await createRedisClient();
+  const redis = await createRedisClient({
+    config: ENV,
+  });
 
   await enqueueJob(redis, job);
   for (let i = 0; i < 5; i++) {

@@ -1,53 +1,8 @@
 import path from "node:path";
 import z from "zod";
 import { CrackedError } from "../cracked-error";
-import type { JudgeStatus } from "../types";
+import { zIsolateMeta, type JudgeStatus } from "../types";
 import { isDirectory, signalCodeMapping } from "../utils";
-
-export const zIsolateRunOpts = z.object({
-  cmd: z.array(z.string().nonempty()).nonempty(),
-  box_id: z.int(),
-  time: z.number().nonnegative().optional(),
-  cg_mem: z.int().nonnegative().optional(),
-  wall_time: z.number().nonnegative().optional(),
-  extra_time: z.number().nonnegative().optional(),
-  stack: z.int().nonnegative().optional(),
-  open_files: z.int().nonnegative().optional(),
-  fsize: z.int().nonnegative().optional(),
-  quota: z
-    .object({
-      blocks: z.int().nonnegative(),
-      inodes: z.int().nonnegative(),
-    })
-    .optional(),
-  processes: z.int().or(z.literal(true)).optional(),
-  add_readonly_dirs: z.array(z.string().nonempty()).optional(),
-});
-
-export const zIsolateMeta = z.object({
-  cg_mem: z.coerce.number(),
-  // the key is present with value `1` if its true. Normalized to true/false here
-  cg_oom_killed: z.coerce
-    .number()
-    .optional()
-    .default(0)
-    .transform((v) => v === 1),
-  csw_forced: z.coerce.number(),
-  csw_voluntary: z.coerce.number(),
-  exitcode: z.coerce.number().optional(),
-  exitsig: z.coerce.number().optional(),
-  // normalized to true/false
-  killed: z.coerce
-    .number()
-    .optional()
-    .default(0)
-    .transform((v) => v === 1),
-  max_rss: z.coerce.number(),
-  message: z.string().optional().default("N/A"),
-  status: z.enum(["RE", "SG", "TO", "XX"]).optional(),
-  time: z.coerce.number(),
-  time_wall: z.coerce.number(),
-});
 
 export const parseMeta = (fileText: string): z.infer<typeof zIsolateMeta> => {
   const entries = fileText

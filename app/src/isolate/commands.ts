@@ -1,3 +1,4 @@
+import { zIsolateRunOpts } from "@/types";
 import path from "path";
 import type z from "zod";
 import { CrackedError } from "../cracked-error";
@@ -8,7 +9,6 @@ import {
   getValidSandboxWorkdir,
   interpretMeta,
   parseMeta,
-  zIsolateRunOpts,
 } from "./isolate-utils";
 
 /**

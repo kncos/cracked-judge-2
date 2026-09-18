@@ -57,6 +57,7 @@
   services.redis.servers."" = {
     enable = true;
     bind = "0.0.0.0";
+    requirePass = "password";
   };
 
   fileSystems = {

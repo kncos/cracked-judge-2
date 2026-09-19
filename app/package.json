@@ -1,6 +1,7 @@
 {
-  "name": "app",
+  "name": "cracked-judge",
   "module": "index.ts",
+  "version": "0.0.1",
   "dependencies": {
     "dotenv": "^17.4.2",
     "ioredis": "^6.0.0",
@@ -12,7 +13,7 @@
     "bun2nix": "^2.1.2",
     "typescript": "^7.0.2"
   },
-  "private": true,
+  "private": false,
   "scripts": {
     "postinstall": "bun2nix -o ../nix/bun.nix",
     "test-nix": "find src -name '*.nix.test.ts' | xargs bun test"

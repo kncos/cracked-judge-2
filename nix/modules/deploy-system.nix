@@ -8,7 +8,6 @@
   imports = [
     ./isolate.nix
     ./app.nix
-    ./gcc-precompile-std.nix
   ];
 
   isolate.enable = true;
@@ -45,6 +44,8 @@
       (pkgs.callPackage ../pkgs/app.nix { }) # installs our application service
       (pkgs.callPackage ../pkgs/isolate-test-program.nix { })
       (pkgs.callPackage ../pkgs/hashdir.nix { })
+      (pkgs.callPackage ../pkgs/judge-headers.nix { })
+      (pkgs.callPackage ../pkgs/judge-cpp.nix { })
     ];
   };
 

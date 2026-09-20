@@ -45,7 +45,7 @@
       (pkgs.callPackage ../pkgs/isolate-test-program.nix { })
       (pkgs.callPackage ../pkgs/hashdir.nix { })
       (pkgs.callPackage ../pkgs/judge-headers.nix { })
-      (pkgs.callPackage ../pkgs/judge-cpp.nix { })
+      (pkgs.callPackage ../pkgs/judge-cpp.nix { inherit pkgs; })
     ];
   };
 

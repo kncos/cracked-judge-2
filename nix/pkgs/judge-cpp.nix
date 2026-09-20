@@ -2,37 +2,38 @@
   pkgs,
 }:
 let
-  precompiledStd = pkgs.runCommand "gcc-precompiled-std" ''
+  glaze = pkgs.glaze;
+  judge-headers = pkgs.callPackage ../pkgs/judge-headers.nix { };
+  gcc16 = pkgs.gcc16;
+
+  precompiledStd = pkgs.runCommand "gcc-precompiled-std" { } ''
     mkdir -p $out/gcm.cache
     cd $(mktemp -d)
 
     # 1. Compile bits/std.cc and bits/std.compat.cc
-    ${pkgs.gcc16}/bin/g++ -O2 -std=c++26 -freflection -fmodules \
+    ${gcc16}/bin/g++ -O2 -std=c++26 -freflection -fmodules \
         -fmodule-only -c -fsearch-include-path bits/std.cc
 
-    ${pkgs.gcc16}/bin/g++ -O2 -std=c++26 -freflection -fmodules \
+    ${gcc16}/bin/g++ -O2 -std=c++26 -freflection -fmodules \
         -fmodule-only -c -fsearch-include-path bits/std.compat.cc
 
     # 2. Copy compiled interfaces
     cp gcm.cache/*.gcm $out/gcm.cache/
 
     # 3. Create the module map file
-    # Note: $out is expanded by Bash here to point to this derivation's store path
-    cat <<EOF > $out/modules.map
-    std $out/gcm.cache/std.gcm
-    std.compat $out/gcm.cache/std.compat.gcm
-    EOF
+    printf "std %s/gcm.cache/std.gcm\nstd.compat %s/gcm.cache/std.compat.gcm\n" "$out" "$out" > $out/modules.map
   '';
 
   # The main compiler runner
   judgeGxx = pkgs.writeShellScriptBin "judge-g++" ''
-    exec ${pkgs.gcc16}/bin/g++ \
+    exec ${gcc16}/bin/g++ \
       -O2 \
       -std=c++26 \
       -freflection \
       -fmodules \
       -fmodule-mapper=${precompiledStd}/modules.map \
-      -isystem ${pkgs.judge-headers}/include \
+      -isystem ${judge-headers}/include \
+      -isystem ${glaze}/include \
       "$@"
   '';
 

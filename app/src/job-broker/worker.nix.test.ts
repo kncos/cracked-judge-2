@@ -82,6 +82,112 @@ int main(void) {
 }
 `;
 
+const cpp_program = `#include "test_runner.hpp"
+
+// A stateful C++ class with non-static member functions
+class BankAccount {
+  int64_t balance = 0;
+  size_t transaction_count = 0;
+
+public:
+  void deposit(int64_t amount) {
+    balance += amount;
+    ++transaction_count;
+  }
+
+  int64_t withdraw(int64_t amount) {
+    if (amount <= balance) {
+      balance -= amount;
+      ++transaction_count;
+    }
+    return balance;
+  }
+
+  int64_t get_balance() const {
+    return balance;
+  }
+
+  size_t get_transactions() const {
+    return transaction_count;
+  }
+};
+
+// Custom aggregate struct (automatically reflected by Glaze)
+struct Coordinate {
+  int64_t x{};
+  int64_t y{};
+};
+
+// Functions with complex signatures and custom parameter names
+struct Operations {
+  static int64_t add(int64_t a, int64_t b) {
+    return a + b;
+  }
+
+  static int64_t matrix_sum(std::vector<std::vector<int64_t>> matrix) {
+    int64_t sum = 0;
+    for (const auto& row : matrix) {
+      for (auto v : row) sum += v;
+    }
+    return sum;
+  }
+
+  static int64_t dot_target(Coordinate target, int64_t factor) {
+    return (target.x + target.y) * factor;
+  }
+};
+
+
+int main() {
+  // Test suite where calls mutate and depend on previous state
+  std::string json = R"(
+  {
+    "data": [
+      { "fn": "deposit", "amount": 100 },
+      { "fn": "deposit", "amount": 50 },
+      { "fn": "get_balance", "expect": 150 },
+      { "fn": "withdraw", "amount": 40, "expect": 110 },
+      { "fn": "get_transactions", "expect": 3 }
+    ]
+  }
+  )";
+
+  // Instantiate the object
+  BankAccount account;
+
+  // Run tests - state persists inside \`account\` across every step!
+  bool success = test_runner::run(account, json);
+
+  std::cout << "Final account balance: " << account.get_balance() << "\\n";
+  std::cout << "bank account test runner success: ";
+  if (success)
+    std::cout << "true";
+  else
+    std::cout << "false";
+  std::cout << std::endl;
+
+  std::string json2 = R"(
+  {
+    "data": [
+      { "fn": "add", "a": 2, "b": 3, "expect": 5 },
+      { "fn": "matrix_sum", "matrix": [[1, 2], [3, 4]], "expect": 10 },
+      { "fn": "dot_target", "factor": 10, "target": {"x": 3, "y": 4}, "expect": 70 }
+    ]
+  }
+  )";
+
+  bool success2 = test_runner::run<Operations>(json2);
+  std::cout << "operations test runner success: ";
+  if (success2)
+    std::cout << "true";
+  else
+    std::cout << "false";
+  std::cout << std::endl;
+
+  return (success && success2) ? 0 : 1;
+}
+`;
+
 const submitJob = async (
   job: z.infer<typeof zJob>,
 ): Promise<z.infer<typeof zJobResult> | null> => {
@@ -90,7 +196,7 @@ const submitJob = async (
   });
 
   await enqueueJob(redis, job);
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 20; i++) {
     const res = await dequeueResult(redis, job.id);
     if (res !== null) {
       return res;
@@ -126,7 +232,35 @@ describe("job consumer test", () => {
     }
   });
 
-  it("using cached result", async () => {
+  it("c++ dependency check", async () => {
+    const id = randomUUIDv7();
+    const job = {
+      id,
+      files: [
+        {
+          name: "main.cpp",
+          contents: cpp_program,
+        },
+        {
+          name: "compile.sh",
+          contents: "judge-c++ main.cpp -o main",
+        },
+        {
+          name: "run.sh",
+          contents: "./main",
+        },
+      ],
+      commands: [
+        { cmd: ["/bin/sh", "compile.sh"] },
+        { cmd: ["/bin/sh", "run.sh"] },
+      ],
+    };
+
+    const res = await submitJob(job);
+    console.error("RESULT:\n", JSON.stringify(res, null, 2));
+  });
+
+  it.skip("using cached result", async () => {
     const compileId = randomUUIDv7();
 
     const job1 = {

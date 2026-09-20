@@ -41,6 +41,7 @@
       zip
       unzip
       tree
+      glaze
       (pkgs.callPackage ../pkgs/app.nix { }) # installs our application service
       (pkgs.callPackage ../pkgs/isolate-test-program.nix { })
       (pkgs.callPackage ../pkgs/hashdir.nix { })

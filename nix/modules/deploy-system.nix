@@ -8,6 +8,7 @@
   imports = [
     ./isolate.nix
     ./app.nix
+    ./gcc-precompile-std.nix
   ];
 
   isolate.enable = true;

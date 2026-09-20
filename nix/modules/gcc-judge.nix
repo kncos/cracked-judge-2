@@ -34,11 +34,13 @@ let
     installPhase = "true";
   };
 
+  judgeHeaders = pkgs.callPackage ../pkgs/judge-headers.nix { };
+
 in
 {
   environment.variables = {
     # Method A: Inject directly into CXXFLAGS
-    CXXFLAGS = "-O2 -std=c++26 -freflection -fmodules -fmodule-mapper=${precompiledStd}/modules.map";
+    CXXFLAGS = "-O2 -std=c++26 -freflection -fmodules -fmodule-mapper=${precompiledStd}/modules.map -isystem ${judgeHeaders}/include";
 
     # Method B: Use GCC's native module mapper environment variable
     # GCC will automatically read this file even if -fmodule-mapper isn't in argv
